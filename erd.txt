@@ -1,0 +1,32 @@
+
+class EventHandler:
+    - db_repo: Repository
+
+
+
+class Repository
+    - client
+
+    # database operations abstract
+
+
+
+- array of timestamps
+ - list of epoch integers - sorted
+
+ - tree
+
+       root
+       /  \
+    l       r
+     \
+      
+- term / exact match
+
+    - hash - O(1)
+
+    - kd tree
+
+- text 
+    - tfidf / M25
+    
