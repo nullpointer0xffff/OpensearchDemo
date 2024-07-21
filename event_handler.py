@@ -1,10 +1,11 @@
-from database.repository import Repository, RepoConfig, OpenSearchRepository, Event
+from opensearch.opensearch_accessor import RepoConfig, OpenSearchRepository, Event
+from utils.opensearch_utils import OpensearchUtils
 import random
 from datetime import datetime, timedelta
 from tqdm import tqdm
 
 class EventHandler:
-    def __init__(self, db_repository: Repository) -> None:
+    def __init__(self, db_repository: OpenSearchRepository) -> None:
         self.db_repository = db_repository
         
     
@@ -12,13 +13,13 @@ class EventHandler:
         if not events:
             return
 
-        unique_indices = set([e.index_name for e in events])
+        unique_indices = set([OpensearchUtils(e.warehouse_id, e.connection_id) for e in events])
         for id in unique_indices:
             self.db_repository.create_index(id)
             print(f"Created index {id}")
 
         for event in events:
-            index_name = event.index_name
+            index_name = OpensearchUtils.build_index(event.warehouse_id, event.connection_id)
             self.db_repository.insert(event, index_name=index_name)
     
     
@@ -46,7 +47,6 @@ def generate_events(num_events: int) -> list[Event]:
         log_entry = {
             'warehouse_id': wid,
             'connection_id': cid,
-            'index_name': f"{wid}-{cid}",
             'timestamp': time,
             'operation': operation,
             'status': status,
@@ -84,10 +84,14 @@ def test():
     event_handler.process(test_events)
     
     # Verify
-    searched_events = db_repo.search(
-        index_name='warehouse_2-connection_3',
+    search_query = OpensearchUtils.build_query(
+        index_name=OpensearchUtils.build_index('warehouse_2', 'connection_3'),
         start_time="2024-01-03",
     )
+    
+    seasrch_response = db_repo.search(search_query)
+    
+    searched_events = OpensearchUtils.extract_search_result(seasrch_response)
     
     print(f"Success to get {len(searched_events)}")
     
